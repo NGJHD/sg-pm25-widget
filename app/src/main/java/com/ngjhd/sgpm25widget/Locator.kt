@@ -24,38 +24,31 @@ import java.util.concurrent.atomic.AtomicReference
  * Lower Seletar, so approximate can put a home in the wrong region.
  * Approximate still works, with that caveat.
  *
- * Order of preference ([locate], used by [FetchWorker]):
- *  1. the OS's last known fix, if under [FRESH_MS] old - instant;
- *  2. a fresh fix ([current]), waiting at most [TIMEOUT_MS]. Background
- *     apps get few location updates per hour, so this can be slow or fail;
- *  3. the OS's last known fix, however old;
- *  4. (FetchWorker) the last fix this app saved, then Central.
- * 1-3 need "Allow all the time" when the app is in the background.
+ * Order of preference ([locate], used by [FetchWorker]) - EVERY update asks
+ * for a new fix, however it was triggered (user, 10-13: "always grab the
+ * location ... only reuse the old location if you cannot grab the current"):
+ *  1. a new fix ([current]), waiting at most [TIMEOUT_MS];
+ *  2. the OS's last known fix, however old;
+ *  3. (FetchWorker) the last fix this app saved, then Central.
+ * 1-2 need "Allow all the time" when the app is in the background.
  */
 object Locator {
 
     private const val TAG = "PM_LOC"
     private const val TIMEOUT_MS = 10_000L
 
-    /** A last known fix younger than this is used as-is. */
-    private const val FRESH_MS = 10 * 60_000L
-
-    /** A fix and whether it counts as current (fresh) rather than last known. */
+    /** A fix, and whether it is new ([current]) rather than the last known one. */
     data class Fix(val location: Location, val fresh: Boolean)
 
-    /** Steps 1-3 above. Blocks; never call on the main thread. */
+    /** Steps 1-2 above. Blocks; never call on the main thread. */
     fun locate(context: Context, isStopped: () -> Boolean): Fix? {
-        val last = lastKnown(context)
-        if (last != null && ageMs(last) < FRESH_MS) {
-            Log.i(TAG, "locate: last known fix is ${ageMs(last) / 1000}s old; using it")
-            return Fix(last, fresh = true)
-        }
         current(context, isStopped)?.let { return Fix(it, fresh = true) }
-        return last?.let { Fix(it, fresh = false) }
+        if (isStopped()) return null
+        return lastKnown(context)?.let {
+            Log.i(TAG, "locate: no new fix; using the last known one")
+            Fix(it, fresh = false)
+        }
     }
-
-    private fun ageMs(l: Location) =
-        (android.os.SystemClock.elapsedRealtimeNanos() - l.elapsedRealtimeNanos) / 1_000_000
 
     fun hasForeground(context: Context): Boolean =
         granted(context, Manifest.permission.ACCESS_COARSE_LOCATION) ||

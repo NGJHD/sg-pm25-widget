@@ -85,6 +85,9 @@ class Store(context: Context) {
         return m to prefs.getLong("errorAt", 0L)
     }
 
+    /** Wall-clock ms when the saved fix was taken, or 0. */
+    fun locationTime(): Long = prefs.getLong("locAt", 0L)
+
     fun saveLocation(lat: Double, lon: Double, at: Long) {
         prefs.edit()
             .putLong("lat", java.lang.Double.doubleToRawLongBits(lat))

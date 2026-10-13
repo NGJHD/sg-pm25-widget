@@ -10,9 +10,11 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    Not the PSI: the user chose PM2.5 1-hr explicitly.
 2. **Region = nearest to the device**, among the five label locations the
    feed publishes (`regionMetadata`). NEA publishes no boundaries; the
-   North/Central split falls at latitude ~1.388. Location order: OS fix
-   < 10 min old → new fix from **all enabled providers at once** (10 s) →
-   OS last known → the app's own saved fix → **Central**. Precise location
+   North/Central split falls at latitude ~1.388. **Every update gets a
+   new fix**, however triggered (user, 10-13: only reuse an old location if a
+   new one cannot be had): new fix from **all enabled providers at once**
+   (10 s) → OS last known → the app's own saved fix → **Central**. Do not
+   reintroduce a "recent fix is good enough" shortcut. Precise location
    is requested (approximate is ~3 km).
 3. **Display**: three centred lines, "1-hr PM2.5" (user, 10-13) over the
    region name ("North") over the value ("73"). Background colour = NEA 1-hr PM2.5 band: 0–55 Normal (green),
@@ -34,7 +36,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    `art/make_icons.py`.
 8. **"Refresh now" in the app shows its state**: "Refreshing…" with a
    spinner for at least 0.8 s, then "Updated ✓" for 1.5 s; a failure shows a
-   toast with the reason. A refresh is often ~0.1 s, which on its own looked
+   toast with the reason. A refresh with nothing visibly changing looked
    unresponsive. The app screen also shows the location used, the distances
    to the nearest label points, the time taken, and the last error.
 7. **Setup gate** (carried over from Webglance): battery **Unrestricted**,
@@ -99,7 +101,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 2 / versionName 1.1 — bump versionCode for every
+  minSdk 26. versionCode 3 / versionName 1.2 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

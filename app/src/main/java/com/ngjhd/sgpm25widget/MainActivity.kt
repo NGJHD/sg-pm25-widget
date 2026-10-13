@@ -227,7 +227,7 @@ class MainActivity : Activity() {
             listOf(region, value, bandText).forEach { it.setTextColor(band.text) }
             val sourceText = when (shown.source) {
                 Store.Source.CURRENT -> "your current location"
-                Store.Source.LAST_KNOWN -> "your last known location"
+                Store.Source.LAST_KNOWN -> "your last known location (no new fix within 10 s)"
                 Store.Source.DEFAULT -> "no location yet, so Central"
             }
             val hour = runCatching {
@@ -318,12 +318,19 @@ class MainActivity : Activity() {
         if (shown.source == Store.Source.DEFAULT) return null
         val (lat, lon) = Store(this).loadLocation() ?: return null
         val acc = if (shown.accuracyM > 0) " ±${shown.accuracyM} m" else ""
+        // Age of the fix when it was used. Android may answer a "current
+        // location" request with a fix it took moments earlier.
+        val fixAt = Store(this).locationTime()
+        val age = if (fixAt > 0) {
+            val sec = ((shown.fetchedAt - fixAt) / 1000).coerceAtLeast(0)
+            if (sec < 120) ", fix ${sec} s old" else ", fix ${sec / 60} min old"
+        } else ""
         val dist = Pm25.DEFAULT_REGIONS
             .map { it.name to Pm25.distanceKm(lat, lon, it.lat, it.lon) }
             .sortedBy { it.second }
             .take(2)
             .joinToString(", ") { "${Pm25.displayName(it.first)} %.1f km".format(it.second) }
-        return "Location %.4f, %.4f$acc · $dist".format(lat, lon)
+        return "Location %.4f, %.4f$acc$age\n$dist".format(lat, lon)
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

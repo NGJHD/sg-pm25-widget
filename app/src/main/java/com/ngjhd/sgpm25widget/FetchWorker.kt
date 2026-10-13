@@ -71,7 +71,7 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
         val download = pool.submit(Callable { Pm25.fetch() })
         pool.shutdown()
 
-        // Location: recent OS fix -> new fix -> old OS fix -> our saved fix -> Central.
+        // Location: new fix -> OS last known fix -> our saved fix -> Central.
         val fix = try {
             Locator.locate(ctx) { isStopped }
         } catch (e: Exception) {

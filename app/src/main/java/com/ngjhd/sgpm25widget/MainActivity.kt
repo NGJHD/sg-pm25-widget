@@ -135,6 +135,10 @@ class MainActivity : Activity() {
                 visibility = View.VISIBLE
                 setOnClickListener { finish() }
             }
+            // First-time setup: hide "All regions" so Done is on screen
+            // without scrolling (user, 10-13: it was missed below the fold).
+            findViewById<View>(R.id.regions_label).visibility = View.GONE
+            findViewById<View>(R.id.regions).visibility = View.GONE
         }
         setUpTextScale()
     }

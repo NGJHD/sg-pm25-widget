@@ -42,7 +42,7 @@ different endpoint).
   (a few seconds: most of it is getting the location).
   While it works, the widget dims, shows a spinner, and the button becomes an
   **X** that cancels.
-- **Text size**: adjustable in the app (80-160 %), with a live preview.
+- **Text size**: adjustable in the app (80-200 %), with a live preview.
 - **Tap the widget** to open the app: all five regions, when the reading is
   from, and the location setup.
 

@@ -17,7 +17,7 @@ class Store(context: Context) {
 
     companion object {
         const val MIN_TEXT_SCALE = 80
-        const val MAX_TEXT_SCALE = 160
+        const val MAX_TEXT_SCALE = 200
         const val TEXT_SCALE_STEP = 10
         const val DEFAULT_TEXT_SCALE = 100
     }

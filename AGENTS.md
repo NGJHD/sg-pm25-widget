@@ -48,9 +48,10 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    location, precise location, then background location. Location takes
    two steps because Android 11+ refuses a background request until
    foreground access is granted.
-9. **Widget text size** (user, 10-13): slider in the app, 80-160 % in 10 %
+9. **Widget text size** (user, 10-13): slider in the app, 80-200 % in 10 %
    steps (default 100 % = 9/12/24 sp for label/region/value; label and region
-   grow at most 120 %, or the number is cut off in a 1x1), applied with
+   grow at most 120 %). Above ~140 % the number is cut off in a 76 dp 1x1 -
+   the user accepts that (10-13). Applied with
    `setTextViewTextSize` on every push. A live preview next to it is the
    widget's own RemoteViews applied in the app, at the placed widget's size.
 
@@ -77,7 +78,9 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
   the most recent X:20.
 - `ScreenOnReceiver` (runtime-registered in `App`) — catch-up on wake with
   `ExistingWorkPolicy.KEEP`. `BootReceiver` — re-arms after boot/update.
-- `MainActivity` — app screen **and** the widget's configure activity. Sets
+- `MainActivity` — app screen **and** the widget's configure activity. In
+  configure mode it shows a Done button and hides "All regions" so Done is
+  visible without scrolling (user, 10-13). Sets
   `RESULT_OK` immediately (the widget is always kept) and starts the schedule,
   because the launcher sends no `onUpdate` for a placement with a configure
   activity. Opening it fetches (foreground ⇒ fresh fix with either grant).
@@ -108,7 +111,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 5 / versionName 1.4 — bump versionCode for every
+  minSdk 26. versionCode 6 / versionName 1.5 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

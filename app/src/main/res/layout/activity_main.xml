@@ -100,7 +100,10 @@
                 android:visibility="gone" />
         </FrameLayout>
 
+        <!-- "All regions" (label + list) is hidden during first-time setup, so
+             the Done button shows without scrolling (user, 10-13). -->
         <TextView
+            android:id="@+id/regions_label"
             style="@style/AppLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

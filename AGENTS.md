@@ -27,10 +27,13 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 6. **Sideloaded only, never on Play** — so `ACCESS_BACKGROUND_LOCATION` is
    fine. App name **"SG PM2.5"**, package **`com.ngjhd.sgpm25widget`**
    (permanent: changing it makes a different app).
-7. **Setup gate** (carried over from Webglance): battery **Unrestricted** and
-   the **Data Saver** exemption are mandatory; an unskippable dialog (only
-   button opens the setting, Back closes the screen) on every resume, plus a
-   banner. Battery first.
+7. **Setup gate** (carried over from Webglance): battery **Unrestricted**,
+   the **Data Saver** exemption and **location "Allow all the time"** (user,
+   10-13) are all mandatory; an unskippable dialog (only button opens the
+   setting, Back closes the screen) on every resume, plus a banner. Order:
+   battery, Data Saver, location, then background location. Location takes
+   two steps because Android 11+ refuses a background request until
+   foreground access is granted.
 
 ## Architecture
 

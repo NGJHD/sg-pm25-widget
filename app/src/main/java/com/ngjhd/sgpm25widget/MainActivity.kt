@@ -1,20 +1,16 @@
 package com.ngjhd.sgpm25widget
 
-import android.Manifest
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.drawable.GradientDrawable
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.work.ExistingWorkPolicy
 import java.text.DateFormat
 import java.time.OffsetDateTime
@@ -168,16 +164,14 @@ class MainActivity : Activity() {
             !hasFg -> {
                 locationStatus.text = "Not allowed. The widget shows Central until it has your location."
                 locationButton.text = "Allow location"
-                locationButton.setOnClickListener {
-                    requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQ_FOREGROUND)
-                }
+                locationButton.setOnClickListener { PowerSetup.requestLocation(this) }
             }
             !hasBg -> {
                 locationStatus.text = "Allowed only while using the app. Hourly updates use the " +
                     "location from the last time you opened the app. Choose \"Allow all the time\" " +
                     "so they follow you."
                 locationButton.text = "Allow all the time"
-                locationButton.setOnClickListener { requestBackground() }
+                locationButton.setOnClickListener { PowerSetup.requestLocation(this) }
             }
             !on -> {
                 locationStatus.text = "Location is turned off on this phone, so updates use the last known location."
@@ -193,39 +187,14 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun requestBackground() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 11+ sends this straight to the app's location page.
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), REQ_BACKGROUND)
-        }
-    }
-
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
         renderLocation()
-        val granted = results.isNotEmpty() && results.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
-        if (granted) {
+        // onResume follows and re-runs the gate, which asks for the next grant.
+        if (PowerSetup.onLocationResult(this, requestCode, permissions, results)) {
             Scheduling.fetchNow(this, userInitiated = true)
-        } else if (permissions.isNotEmpty() && !shouldShowRequestPermissionRationale(permissions[0])) {
-            // Refused twice: Android no longer shows the prompt.
-            Toast.makeText(
-                this,
-                "Open Permissions ▸ Location and choose " +
-                    if (requestCode == REQ_BACKGROUND) "\"Allow all the time\"" else "\"Allow\"",
-                Toast.LENGTH_LONG,
-            ).show()
-            runCatching {
-                startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")),
-                )
-            }
         }
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-
-    companion object {
-        private const val REQ_FOREGROUND = 1
-        private const val REQ_BACKGROUND = 2
-    }
 }

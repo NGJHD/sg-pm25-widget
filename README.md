@@ -41,8 +41,9 @@ different endpoint).
 
 Placing the widget opens the app screen. For hourly updates to work:
 
-1. **Location → Allow all the time.** With "While using the app" only, the
-   hourly updates use the location from the last time the app was open.
+1. **Location → Allow all the time** (the app insists). With "While using
+   the app" only, the hourly updates use the location from the last time the
+   app was open.
 2. **Battery → Unrestricted** (the app insists). Otherwise Android parks the
    hourly alarm and the widget never updates.
 3. If **Data Saver** is on, allow the app to use data while it is on (the app

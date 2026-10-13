@@ -1,19 +1,22 @@
 package com.ngjhd.sgpm25widget
 
 import android.app.Activity
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Uri
+import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 
 /**
- * The setup gate: the two phone settings without which the widget silently
- * never updates.
+ * The setup gate: the phone settings without which the widget silently
+ * never updates, or never follows you.
  *
  * 1. **Battery "Unrestricted"**. Without it the inexact refresh alarms are
  *    parked ~a year out (measured in Webglance) and background starts are
@@ -23,8 +26,14 @@ import android.widget.Toast
  *    exempt: netd refuses DNS for our uid (`isBlocked=true`), every scheduled
  *    fetch fails with a DNS error. (Measured in Webglance, where it hit the
  *    user on a fresh install.)
+ * 3. **Location "Allow all the time"** (user, 10-13: nag for it too). With
+ *    no location the widget shows Central; with "While using the app" only,
+ *    the hourly updates (always in the background) cannot get a fix and use
+ *    the location from the last time the app was open. Asked in two steps,
+ *    because Android 11+ refuses a background request until foreground
+ *    access is granted: [Problem.LOCATION], then [Problem.BACKGROUND_LOCATION].
  *
- * Both are checked on every resume of the app screen and shown one at a time,
+ * All are checked on every resume of the app screen and shown one at a time,
  * battery first (nothing runs at all without it). Deliberately unskippable:
  * no "Later" - see [warnIfRestricted].
  */
@@ -32,7 +41,11 @@ object PowerSetup {
 
     private const val TAG = "PM_POWER"
 
-    enum class Problem { BATTERY, DATA_SAVER }
+    enum class Problem { BATTERY, DATA_SAVER, LOCATION, BACKGROUND_LOCATION }
+
+    /** Request codes for [requestLocation]; results land in the activity. */
+    const val REQ_LOCATION = 101
+    const val REQ_BACKGROUND_LOCATION = 102
 
     /** True when the app is on the battery-optimisation allowlist. */
     fun isUnrestricted(context: Context): Boolean {
@@ -56,6 +69,8 @@ object PowerSetup {
     fun currentProblem(context: Context): Problem? = when {
         !isUnrestricted(context) -> Problem.BATTERY
         isDataSaverBlocking(context) -> Problem.DATA_SAVER
+        !Locator.hasForeground(context) -> Problem.LOCATION
+        !Locator.hasBackground(context) -> Problem.BACKGROUND_LOCATION
         else -> null
     }
 
@@ -86,7 +101,7 @@ object PowerSetup {
             current.second.dismiss()
         }
         if (problem == null) {
-            Log.i(TAG, "setup gate: battery Unrestricted and Data Saver OK")
+            Log.i(TAG, "setup gate: battery, Data Saver and location all OK")
             return
         }
         Log.w(TAG, "setup gate: $problem - refreshes will be delayed or dropped")
@@ -108,16 +123,28 @@ object PowerSetup {
                     "Data Saver is on. (Or turn Data Saver off.)",
                 "Open settings",
             )
+            Problem.LOCATION -> Triple(
+                "Location is not allowed",
+                "$appName shows the PM2.5 reading for the region you are in, so it " +
+                    "needs your location. Without it the widget always shows Central.\n\n" +
+                    "Tap Allow location, then allow it. (Approximate is enough.) " +
+                    "You will be asked for \"Allow all the time\" next.",
+                "Allow location",
+            )
+            Problem.BACKGROUND_LOCATION -> Triple(
+                "Allow location all the time",
+                "The hourly update runs in the background, and Android only gives " +
+                    "it your location with \"Allow all the time\". Without it the " +
+                    "widget keeps showing the region from the last time you opened " +
+                    "$appName.\n\n" +
+                    "Tap Open settings, then choose Allow all the time.",
+                "Open settings",
+            )
         }
         AlertDialog.Builder(activity)
             .setTitle(title)
             .setMessage(message)
-            .setPositiveButton(button) { _, _ ->
-                when (problem) {
-                    Problem.BATTERY -> openSetting(activity)
-                    Problem.DATA_SAVER -> openDataSaverSetting(activity)
-                }
-            }
+            .setPositiveButton(button) { _, _ -> openSettingFor(activity, problem) }
             // No "Later": the app does not work without this, so there is no
             // way past the dialog into the app. BACK still works, but it
             // closes the screen rather than the dialog - leaving is allowed,
@@ -137,6 +164,57 @@ object PowerSetup {
     fun openSettingFor(activity: Activity, problem: Problem) = when (problem) {
         Problem.BATTERY -> openSetting(activity)
         Problem.DATA_SAVER -> openDataSaverSetting(activity)
+        Problem.LOCATION, Problem.BACKGROUND_LOCATION -> requestLocation(activity)
+    }
+
+    /**
+     * Asks for the next missing location grant. On Android 11+ the background
+     * request does not prompt: it opens the app's location page, where "Allow
+     * all the time" is. Once the user has refused twice Android stops
+     * prompting at all; the activity's onRequestPermissionsResult then opens
+     * App info instead ([onLocationResult]).
+     */
+    fun requestLocation(activity: Activity) {
+        if (!Locator.hasForeground(activity)) {
+            activity.requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            activity.requestPermissions(
+                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                REQ_BACKGROUND_LOCATION,
+            )
+        }
+    }
+
+    /**
+     * Call from onRequestPermissionsResult. Returns true when a location grant
+     * was obtained. A refusal that Android will no longer prompt for sends the
+     * user to App info > Permissions > Location.
+     */
+    fun onLocationResult(
+        activity: Activity,
+        requestCode: Int,
+        permissions: Array<out String>,
+        results: IntArray,
+    ): Boolean {
+        if (requestCode != REQ_LOCATION && requestCode != REQ_BACKGROUND_LOCATION) return false
+        val granted = results.isNotEmpty() && results.all { it == PackageManager.PERMISSION_GRANTED }
+        if (granted) return true
+        if (permissions.isNotEmpty() && !activity.shouldShowRequestPermissionRationale(permissions[0])) {
+            val choice = if (requestCode == REQ_BACKGROUND_LOCATION) "Allow all the time" else "Allow"
+            Toast.makeText(activity, "Open Permissions \u25B8 Location and choose $choice", Toast.LENGTH_LONG).show()
+            startFirst(
+                activity,
+                listOf(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:${activity.packageName}"),
+                    ),
+                ),
+                "Open Settings \u25B8 Apps \u25B8 ${activity.getString(R.string.app_name)} " +
+                    "\u25B8 Permissions \u25B8 Location",
+            )
+        }
+        return false
     }
 
     /** One-line banner text for the list screen. */
@@ -149,6 +227,11 @@ object PowerSetup {
             Problem.DATA_SAVER ->
                 "⚠  Data Saver is blocking $appName, so the widget cannot update. " +
                     "Tap to allow it to use data while Data Saver is on."
+            Problem.LOCATION ->
+                "⚠  Location is not allowed, so the widget shows Central. Tap to allow it."
+            Problem.BACKGROUND_LOCATION ->
+                "⚠  Location is not allowed all the time, so hourly updates cannot follow " +
+                    "you. Tap, then choose Allow all the time."
         }
     }
 

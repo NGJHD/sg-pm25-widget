@@ -4,11 +4,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Coarse is plenty: the five regions are kilometres apart. Background
-         ("Allow all the time") lets each hourly update use a fresh fix; it is
-         a Play-restricted permission, which is fine because this app is only
+    <!-- Fine is asked for alongside coarse so the prompt offers Precise:
+         approximate (~3 km) can land on the wrong side of a region boundary.
+         Background ("Allow all the time") lets each hourly update use a fresh
+         fix; it is Play-restricted, which is fine because this app is only
          ever sideloaded. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- Alarms are wiped by a reboot and by an app update; BootReceiver re-arms. -->

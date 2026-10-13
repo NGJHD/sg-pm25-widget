@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget background. White, so WidgetViews can colour it to the band with
-     setColorFilter (works on every API level, unlike a RemoteViews tint). -->
+<!-- Widget background. WidgetViews recolours it to the band with
+     setColorFilter (works on every API level, unlike a RemoteViews tint);
+     the grey here only shows before the first push. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#FFFFFF" />
+    <solid android:color="#5E6878" />
     <corners android:radius="16dp" />
 </shape>

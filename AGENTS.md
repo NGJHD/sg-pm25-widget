@@ -1,4 +1,4 @@
-# AGENTS.md — SG PM2.5 widget (Android)
+# AGENTS.md — SG PM2.5 Widget (Android)
 
 Working notes for this repo: requirements, architecture, constraints. Keep it
 describing the app **as it is now**. User-facing behaviour is in `README.md`.
@@ -9,10 +9,13 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    (`pm25_one_hourly`) from `https://api-open.data.gov.sg/v2/real-time/api/pm25`.
    Not the PSI: the user chose PM2.5 1-hr explicitly.
 2. **Region = nearest to the device**, among the five label locations the
-   feed publishes (`regionMetadata`). Location order: fresh fix → OS last
-   known → the app's own saved fix → **Central**.
-3. **Display**: two centred lines, region name ("North") over the value
-   ("73"). Background colour = NEA 1-hr PM2.5 band: 0–55 Normal (green),
+   feed publishes (`regionMetadata`). NEA publishes no boundaries; the
+   North/Central split falls at latitude ~1.388. Location order: OS fix
+   < 10 min old → new fix from **all enabled providers at once** (10 s) →
+   OS last known → the app's own saved fix → **Central**. Precise location
+   is requested (approximate is ~3 km).
+3. **Display**: three centred lines, "1-hr PM2.5" (user, 10-13) over the
+   region name ("North") over the value ("73"). Background colour = NEA 1-hr PM2.5 band: 0–55 Normal (green),
    56–150 Elevated (yellow, dark text), 151–250 High (orange), 251+ Very high
    (red). `Pm25.Band`.
 4. **Refresh button** top-right on a translucent circle: re-locates and
@@ -25,8 +28,15 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    the screen on**. Asleep → update at the next wake. If X:20 still returns
    the previous hour, retry in 10 min.
 6. **Sideloaded only, never on Play** — so `ACCESS_BACKGROUND_LOCATION` is
-   fine. App name **"SG PM2.5"**, package **`com.ngjhd.sgpm25widget`**
-   (permanent: changing it makes a different app).
+   fine. App name **"SG PM2.5 Widget"** (user, 10-13), package
+   **`com.ngjhd.sgpm25widget`** (permanent, and registered for Android
+   developer verification). Icon: `art/Haze.png` (user's), layers built by
+   `art/make_icons.py`.
+8. **"Refresh now" in the app shows its state**: "Refreshing…" with a
+   spinner for at least 0.8 s, then "Updated ✓" for 1.5 s; a failure shows a
+   toast with the reason. A refresh is often ~0.1 s, which on its own looked
+   unresponsive. The app screen also shows the location used, the distances
+   to the nearest label points, the time taken, and the last error.
 7. **Setup gate** (carried over from Webglance): battery **Unrestricted**,
    the **Data Saver** exemption and **location "Allow all the time"** (user,
    10-13) are all mandatory; an unskippable dialog (only button opens the
@@ -43,10 +53,15 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
   last reading and the last location (SharedPreferences `pm25`).
 - `Pm25` — parsing, nearest region (equirectangular, lon scaled by
   cos(lat)), bands, blocking HTTP fetch. Pure logic is unit-tested.
-- `Locator` — plain `LocationManager` (no Play services), coarse only,
-  `getCurrentLocation` (API 30+) / `requestSingleUpdate` below, 20 s timeout.
-- `FetchWorker` — WorkManager one-shot: locate, fetch, save, push; 4 attempts
-  with 30 s exponential backoff; skips scheduled runs with the screen off.
+- `Locator` — plain `LocationManager` (no Play services).
+  `getCurrentLocation` (API 30+) / `requestSingleUpdate` below on every
+  enabled provider at once, first fix wins, 10 s timeout. **Measured 10-13
+  (emulator): asking only `fused` waited the full timeout with no fix** and
+  fell back to Central — the cause of "slow refresh + wrong region".
+- `FetchWorker` — WorkManager one-shot: download and locate **in parallel**,
+  then save and push. A tap gets one attempt (expedited on Android 12+);
+  scheduled runs get 4 with 30 s exponential backoff and are skipped with
+  the screen off.
 - `Scheduling` — AlarmManager chain: `setWindow(RTC, next X:20, 60 s)`,
   **inexact and non-wakeup**; each tick arms the next. Plus an hourly
   WorkManager periodic **backstop** that only acts when the value predates
@@ -84,7 +99,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 1 / versionName 1.0 — bump versionCode for every
+  minSdk 26. versionCode 2 / versionName 1.1 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

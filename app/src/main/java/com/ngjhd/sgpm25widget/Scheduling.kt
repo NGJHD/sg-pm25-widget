@@ -10,6 +10,7 @@ import androidx.work.BackoffPolicy
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -59,7 +60,7 @@ object Scheduling {
 
     private const val TICK_WINDOW_MS = 60_000L
 
-    private const val FETCH_WORK = "pm25-fetch"
+    const val FETCH_WORK = "pm25-fetch"
     private const val BACKSTOP_WORK = "pm25-backstop"
 
     private fun alarms(context: Context) =
@@ -154,12 +155,19 @@ object Scheduling {
         context: Context,
         userInitiated: Boolean = false,
         policy: ExistingWorkPolicy = ExistingWorkPolicy.REPLACE,
-    ) {
-        val request = OneTimeWorkRequestBuilder<FetchWorker>()
+    ): java.util.UUID {
+        val builder = OneTimeWorkRequestBuilder<FetchWorker>()
             .setInputData(workDataOf(EXTRA_USER_INITIATED to userInitiated))
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-            .build()
+        // A tap must start NOW, not when JobScheduler gets round to it.
+        // Expedited only on Android 12+: below that WorkManager runs expedited
+        // work as a foreground service, which this app does not have.
+        if (userInitiated && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            builder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+        }
+        val request = builder.build()
         WorkManager.getInstance(context).enqueueUniqueWork(FETCH_WORK, policy, request)
+        return request.id
     }
 
     fun cancelFetch(context: Context) {

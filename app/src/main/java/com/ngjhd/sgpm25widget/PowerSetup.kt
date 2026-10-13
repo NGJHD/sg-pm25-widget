@@ -127,7 +127,7 @@ object PowerSetup {
                 "Location is not allowed",
                 "$appName shows the PM2.5 reading for the region you are in, so it " +
                     "needs your location. Without it the widget always shows Central.\n\n" +
-                    "Tap Allow location, then allow it. (Approximate is enough.) " +
+                    "Tap Allow location, then choose Precise and allow it. " +
                     "You will be asked for \"Allow all the time\" next.",
                 "Allow location",
             )
@@ -176,7 +176,15 @@ object PowerSetup {
      */
     fun requestLocation(activity: Activity) {
         if (!Locator.hasForeground(activity)) {
-            activity.requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
+            // Both, so the prompt offers Precise (see Locator: approximate is
+            // ~3 km, enough to land on the wrong side of a region boundary).
+            activity.requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+                REQ_LOCATION,
+            )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             activity.requestPermissions(
                 arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
@@ -197,7 +205,8 @@ object PowerSetup {
         results: IntArray,
     ): Boolean {
         if (requestCode != REQ_LOCATION && requestCode != REQ_BACKGROUND_LOCATION) return false
-        val granted = results.isNotEmpty() && results.all { it == PackageManager.PERMISSION_GRANTED }
+        // Approximate alone (fine refused) still counts as granted.
+        val granted = results.isNotEmpty() && results.any { it == PackageManager.PERMISSION_GRANTED }
         if (granted) return true
         if (permissions.isNotEmpty() && !activity.shouldShowRequestPermissionRationale(permissions[0])) {
             val choice = if (requestCode == REQ_BACKGROUND_LOCATION) "Allow all the time" else "Allow"

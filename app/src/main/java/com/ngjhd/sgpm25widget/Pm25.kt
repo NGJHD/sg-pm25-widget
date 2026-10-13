@@ -89,6 +89,14 @@ object Pm25 {
         }
     }
 
+    /** Distance in km (equirectangular; fine at Singapore's scale). */
+    fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val k = cos(Math.toRadians((lat1 + lat2) / 2))
+        val dx = (lon2 - lon1) * k
+        val dy = lat2 - lat1
+        return Math.sqrt(dx * dx + dy * dy) * 111.195
+    }
+
     /**
      * NEA's 1-hour PM2.5 bands (µg/m³). [text] is the readable text colour
      * on [color].

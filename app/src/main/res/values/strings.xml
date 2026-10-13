@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SG PM2.5</string>
+    <string name="app_name">SG PM2.5 Widget</string>
     <string name="widget_description">1-hour PM2.5 for your region of Singapore</string>
 </resources>

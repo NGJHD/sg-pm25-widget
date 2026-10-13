@@ -53,6 +53,7 @@ object WidgetViews {
             views.setInt(R.id.widget_bg, "setColorFilter", band.color)
             views.setTextViewText(R.id.widget_region, Pm25.displayName(shown.region))
             views.setTextViewText(R.id.widget_value, shown.value.toString())
+            views.setTextColor(R.id.widget_label, band.text)
             views.setTextColor(R.id.widget_region, band.text)
             views.setTextColor(R.id.widget_value, band.text)
             views.setViewVisibility(R.id.widget_value, View.VISIBLE)
@@ -62,8 +63,9 @@ object WidgetViews {
             )
         } else {
             views.setInt(R.id.widget_bg, "setColorFilter", NO_DATA_COLOR)
-            views.setTextViewText(R.id.widget_region, if (failed) "Failed" else "PM2.5")
+            views.setTextViewText(R.id.widget_region, if (failed) "Failed" else "–")
             views.setTextViewText(R.id.widget_value, if (failed) "Tap ⟳" else "…")
+            views.setTextColor(R.id.widget_label, 0xFFFFFFFF.toInt())
             views.setTextColor(R.id.widget_region, 0xFFFFFFFF.toInt())
             views.setTextColor(R.id.widget_value, 0xFFFFFFFF.toInt())
         }

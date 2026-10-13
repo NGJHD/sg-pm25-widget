@@ -5,10 +5,13 @@ import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import java.time.OffsetDateTime
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 /**
- * One update: locate the device, fetch the feed, pick the nearest region,
- * save it, and push every widget.
+ * One update: locate the device and fetch the feed (in parallel), pick the
+ * nearest region, save it, and push every widget.
  */
 class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
@@ -33,50 +36,75 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
             Scheduling.armNextTick(ctx)
         }
 
-        val ok = try {
+        val error = try {
             update(ctx)
         } catch (e: Throwable) {
             Log.e(TAG, "update threw", e)
-            false
+            e.toString()
         }
         if (isStopped) {
             // Cancelled from the widget; the broadcast already restored it.
             return Result.failure()
         }
-        if (ok) {
+        if (error == null) {
             Scheduling.cancelRefreshWatchdog(ctx)
             return Result.success()
         }
-        val lastAttempt = runAttemptCount >= MAX_ATTEMPTS - 1 || backstop
+        Store(ctx).saveError(error)
+        // A tap gets one attempt: the person is watching, and a retry 30 s
+        // later would only keep the spinner up. Scheduled updates retry.
+        val lastAttempt = userInitiated || backstop || runAttemptCount >= MAX_ATTEMPTS - 1
         // Never leave the spinner up after a failed attempt.
         WidgetViews.updateAll(ctx, failed = lastAttempt)
         if (lastAttempt) Scheduling.cancelRefreshWatchdog(ctx)
         return if (lastAttempt) Result.failure() else Result.retry()
     }
 
-    private fun update(ctx: Context): Boolean {
+    /** Returns null on success, else what went wrong (shown on the app screen). */
+    private fun update(ctx: Context): String? {
         val store = Store(ctx)
+        val t0 = System.currentTimeMillis()
 
-        // Location: fresh fix -> OS last known -> our saved fix -> Central.
-        var source = Store.Source.CURRENT
-        val loc = Locator.current(ctx) { isStopped }
-            ?: Locator.lastKnown(ctx)?.also { source = Store.Source.LAST_KNOWN }
-        if (isStopped) return false
-        val latLon = if (loc != null) {
-            store.saveLocation(loc.latitude, loc.longitude, loc.time)
-            loc.latitude to loc.longitude
+        // The download does not depend on the location: start it first and
+        // let it run while the location is found.
+        val pool = Executors.newSingleThreadExecutor()
+        val download = pool.submit(Callable { Pm25.fetch() })
+        pool.shutdown()
+
+        // Location: recent OS fix -> new fix -> old OS fix -> our saved fix -> Central.
+        val fix = try {
+            Locator.locate(ctx) { isStopped }
+        } catch (e: Exception) {
+            Log.w(TAG, "locate failed: $e")
+            null
+        }
+        val locMs = System.currentTimeMillis() - t0
+        if (isStopped) {
+            download.cancel(true)
+            return "cancelled"
+        }
+        var source = when {
+            fix == null -> Store.Source.LAST_KNOWN
+            fix.fresh -> Store.Source.CURRENT
+            else -> Store.Source.LAST_KNOWN
+        }
+        val latLon = if (fix != null) {
+            store.saveLocation(fix.location.latitude, fix.location.longitude, fix.location.time)
+            fix.location.latitude to fix.location.longitude
         } else {
-            source = Store.Source.LAST_KNOWN
             store.loadLocation()
         }
 
         val reading = try {
-            Pm25.fetch()
+            download.get(20, TimeUnit.SECONDS)
         } catch (e: Exception) {
-            Log.w(TAG, "fetch failed: $e")
-            return false
+            download.cancel(true)
+            val cause = (e as? java.util.concurrent.ExecutionException)?.cause ?: e
+            Log.w(TAG, "fetch failed: $cause")
+            return "download failed: ${cause.javaClass.simpleName}" +
+                (cause.message?.let { ": $it" } ?: "")
         }
-        if (isStopped) return false
+        if (isStopped) return "cancelled"
 
         val region = if (latLon != null) {
             Pm25.nearestRegion(reading.regions, latLon.first, latLon.second).name
@@ -84,11 +112,9 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
             source = Store.Source.DEFAULT
             Pm25.DEFAULT_REGION
         }
-        val value = reading.values[region] ?: run {
-            Log.w(TAG, "no value for $region in ${reading.values}")
-            return false
-        }
-        Log.i(TAG, "region=$region value=$value source=$source reading=${reading.timestamp} at=$latLon")
+        val value = reading.values[region] ?: return "no value for $region"
+        val tookMs = System.currentTimeMillis() - t0
+        Log.i(TAG, "region=$region value=$value source=$source reading=${reading.timestamp} took=${tookMs}ms loc=${locMs}ms")
 
         store.saveShown(
             Store.Shown(
@@ -98,6 +124,9 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
                 fetchedAt = System.currentTimeMillis(),
                 source = source,
                 all = reading.values,
+                tookMs = tookMs,
+                locMs = locMs,
+                accuracyM = fix?.location?.takeIf { it.hasAccuracy() }?.accuracy?.toInt() ?: -1,
             ),
         )
         WidgetViews.updateAll(ctx)
@@ -105,7 +134,7 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
         // The feed publishes ~X:15; if X:20 still got last hour's reading,
         // look again shortly instead of an hour from now.
         if (isLate(reading.timestamp)) Scheduling.armLateRetry(ctx)
-        return true
+        return null
     }
 
     /** True when [timestamp] is older than the top of the current fetch hour. */
@@ -120,7 +149,7 @@ class FetchWorker(context: Context, params: WorkerParameters) : Worker(context, 
     companion object {
         private const val TAG = "PM_FETCH"
 
-        /** 30 s exponential backoff: ~30 + 60 + 120 s of trying. */
+        /** Scheduled updates: 30 s exponential backoff, ~30 + 60 + 120 s. */
         const val MAX_ATTEMPTS = 4
     }
 }

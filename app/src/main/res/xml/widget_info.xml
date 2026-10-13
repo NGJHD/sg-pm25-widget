@@ -11,7 +11,7 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/widget_pm25"
-    android:previewLayout="@layout/widget_pm25"
+    android:previewLayout="@layout/widget_pm25_preview"
     android:description="@string/widget_description"
     android:configure="com.ngjhd.sgpm25widget.MainActivity"
     android:widgetFeatures="reconfigurable" />

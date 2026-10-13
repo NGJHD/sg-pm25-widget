@@ -11,9 +11,14 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.lifecycle.Observer
 import androidx.work.ExistingWorkPolicy
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import java.text.DateFormat
 import java.time.OffsetDateTime
+import java.util.UUID
 import java.time.format.DateTimeFormatter
 
 /**
@@ -38,6 +43,54 @@ class MainActivity : Activity() {
         runOnUiThread { renderReading() }
     }
 
+    private lateinit var refreshButton: Button
+    private lateinit var refreshSpinner: View
+
+    /**
+     * The fetch started by a tap on "Refresh now", until it finishes. Tracked
+     * by id rather than by watching for RUNNING: a fetch takes ~0.1 s, and
+     * LiveData can skip straight to the finished state.
+     */
+    private var tappedId: UUID? = null
+    private var tappedAt = 0L
+    private var wasRunning = false
+
+    /** Tracks the fetch work so the button can show "Refreshing…". */
+    private val workObserver = Observer<List<WorkInfo>> { infos ->
+        val running = infos.any {
+            it.state == WorkInfo.State.RUNNING ||
+                (it.state == WorkInfo.State.ENQUEUED && it.runAttemptCount == 0)
+        }
+        var succeeded = false
+        var failed = false
+        val mine = tappedId?.let { id -> infos.firstOrNull { it.id == id } }
+        if (mine != null && mine.state.isFinished) {
+            tappedId = null
+            succeeded = mine.state == WorkInfo.State.SUCCEEDED
+            failed = mine.state == WorkInfo.State.FAILED
+        } else if (tappedId != null && System.currentTimeMillis() - tappedAt > 70_000L) {
+            tappedId = null // never reported back; do not spin forever
+        } else if (tappedId == null && wasRunning && !running) {
+            // A fetch this screen did not start (opening the app, the widget).
+            succeeded = infos.any { it.state == WorkInfo.State.SUCCEEDED }
+            failed = infos.any { it.state == WorkInfo.State.FAILED }
+        }
+        if (failed) {
+            Store(this).loadError()?.let {
+                Toast.makeText(this, "Refresh failed: ${it.first}", Toast.LENGTH_LONG).show()
+            }
+        }
+        wasRunning = running
+        renderRefreshing(running || tappedId != null, justSucceeded = succeeded)
+        renderReading()
+    }
+
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** When "Refreshing…" went up; it stays at least [MIN_REFRESHING_MS]. */
+    private var refreshingSince = 0L
+    private var pendingButton: Runnable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -49,10 +102,15 @@ class MainActivity : Activity() {
         warning.setOnClickListener {
             PowerSetup.currentProblem(this)?.let { PowerSetup.openSettingFor(this, it) }
         }
-        findViewById<Button>(R.id.btn_refresh).setOnClickListener {
+        refreshButton = findViewById(R.id.btn_refresh)
+        refreshSpinner = findViewById(R.id.refresh_spinner)
+        refreshButton.setOnClickListener {
+            if (refreshingSince != 0L) return@setOnClickListener // already refreshing
+            tappedAt = System.currentTimeMillis()
+            renderRefreshing(true)
             WidgetViews.showRefreshing(this)
             Scheduling.armRefreshWatchdog(this)
-            Scheduling.fetchNow(this, userInitiated = true)
+            tappedId = Scheduling.fetchNow(this, userInitiated = true)
         }
 
         configuringId = intent?.getIntExtra(
@@ -81,6 +139,8 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         getSharedPreferences("pm25", MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(Scheduling.FETCH_WORK)
+            .observeForever(workObserver)
         renderReading()
         renderLocation()
         val problem = PowerSetup.currentProblem(this)
@@ -95,6 +155,52 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         getSharedPreferences("pm25", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(Scheduling.FETCH_WORK)
+            .removeObserver(workObserver)
+    }
+
+    /**
+     * A refresh usually takes well under a second (a recent fix is reused),
+     * which on its own changed nothing visible and read as "unresponsive"
+     * (user, 10-13). So "Refreshing…" stays up for at least
+     * [MIN_REFRESHING_MS], and a success then shows "Updated ✓" briefly.
+     */
+    private fun renderRefreshing(on: Boolean, justSucceeded: Boolean = false) {
+        pendingButton?.let { handler.removeCallbacks(it) }
+        pendingButton = null
+        if (on) {
+            if (refreshingSince == 0L) refreshingSince = System.currentTimeMillis()
+            setButton("Refreshing…", enabled = false, spinner = true)
+            return
+        }
+        val wait = refreshingSince + MIN_REFRESHING_MS - System.currentTimeMillis()
+        refreshingSince = 0L
+        val finish = Runnable {
+            if (justSucceeded) {
+                setButton("Updated ✓", enabled = true, spinner = false)
+                pendingButton = Runnable { setButton("Refresh now", enabled = true, spinner = false) }
+                    .also { handler.postDelayed(it, UPDATED_MS) }
+            } else {
+                setButton("Refresh now", enabled = true, spinner = false)
+            }
+        }
+        if (wait > 0) {
+            pendingButton = finish
+            handler.postDelayed(finish, wait)
+        } else {
+            finish.run()
+        }
+    }
+
+    /**
+     * The button is never actually disabled: the disabled background is a
+     * pale grey that the white text is unreadable on. Taps while refreshing
+     * are ignored in the click listener instead.
+     */
+    private fun setButton(text: String, enabled: Boolean, spinner: Boolean) {
+        refreshButton.alpha = if (enabled) 1f else 0.85f
+        refreshButton.text = text
+        refreshSpinner.visibility = if (spinner) View.VISIBLE else View.GONE
     }
 
     private fun renderReading() {
@@ -128,7 +234,15 @@ class MainActivity : Activity() {
                 OffsetDateTime.parse(shown.timestamp).format(DateTimeFormatter.ofPattern("h a"))
             }.getOrDefault(shown.timestamp)
             val fetched = DateFormat.getTimeInstance(DateFormat.SHORT).format(shown.fetchedAt)
-            meta.text = "Reading for $hour (SGT) · checked $fetched\nRegion from $sourceText"
+            val lines = mutableListOf("Reading for $hour (SGT) · checked $fetched", "Region from $sourceText")
+            locationLine(shown)?.let { lines += it }
+            if (shown.tookMs >= 0) {
+                lines += "Last refresh took %.1f s (location %.1f s)".format(shown.tookMs / 1000.0, shown.locMs / 1000.0)
+            }
+            Store(this).loadError()?.let { (msg, at) ->
+                lines += "Last attempt failed at ${DateFormat.getTimeInstance(DateFormat.SHORT).format(at)}: $msg"
+            }
+            meta.text = lines.joinToString("\n")
         }
 
         val list = findViewById<LinearLayout>(R.id.regions)
@@ -196,5 +310,26 @@ class MainActivity : Activity() {
         }
     }
 
+    /**
+     * Where the location was and how far the nearest region label points
+     * are, so a surprising region can be checked against a map.
+     */
+    private fun locationLine(shown: Store.Shown): String? {
+        if (shown.source == Store.Source.DEFAULT) return null
+        val (lat, lon) = Store(this).loadLocation() ?: return null
+        val acc = if (shown.accuracyM > 0) " ±${shown.accuracyM} m" else ""
+        val dist = Pm25.DEFAULT_REGIONS
+            .map { it.name to Pm25.distanceKm(lat, lon, it.lat, it.lon) }
+            .sortedBy { it.second }
+            .take(2)
+            .joinToString(", ") { "${Pm25.displayName(it.first)} %.1f km".format(it.second) }
+        return "Location %.4f, %.4f$acc · $dist".format(lat, lon)
+    }
+
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private const val MIN_REFRESHING_MS = 800L
+        private const val UPDATED_MS = 1500L
+    }
 }

@@ -75,20 +75,37 @@
             android:layout_marginTop="10dp"
             android:gravity="center" />
 
-        <Button
-            android:id="@+id/btn_refresh"
-            style="@style/AppButtonPrimary"
+        <!-- While a fetch runs: spinner over the button's left edge, text
+             "Refreshing…", button disabled (MainActivity.renderRefreshing). -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Refresh now" />
+            android:layout_marginTop="16dp">
+
+            <Button
+                android:id="@+id/btn_refresh"
+                style="@style/AppButtonPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Refresh now" />
+
+            <ProgressBar
+                android:id="@+id/refresh_spinner"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="18dp"
+                android:elevation="4dp"
+                android:indeterminateTint="@color/on_accent"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <TextView
             style="@style/AppLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="All regions (1-hour PM2.5, µg/m³)" />
+            android:text="All regions" />
 
         <LinearLayout
             android:id="@+id/regions"
@@ -127,7 +144,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Bands (NEA, 1-hour PM2.5): 0–55 Normal, 56–150 Elevated, 151–250 High, 251 and above Very high.\n\nThe widget updates every hour at 20 minutes past, while the screen is on, and catches up when the phone wakes. Add it from your home screen's widget picker. Data: data.gov.sg." />
+            android:text="Values are the 1-hour PM2.5 concentration in µg/m³. Bands (NEA): 0–55 Normal, 56–150 Elevated, 151–250 High, 251 and above Very high.\n\nThe widget updates every hour at 20 minutes past, while the screen is on, and catches up when the phone wakes. Add it from your home screen's widget picker. Data: data.gov.sg." />
 
         <!-- Only when opened by placing a widget. -->
         <Button

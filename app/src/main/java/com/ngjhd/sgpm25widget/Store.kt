@@ -30,6 +30,11 @@ class Store(context: Context) {
         val source: Source,
         /** All five regions, for the app screen. */
         val all: Map<String, Int>,
+        /** Diagnostics for the app screen: total and location time. */
+        val tookMs: Long = -1,
+        val locMs: Long = -1,
+        /** Accuracy of the fix used, metres; -1 if unknown or none. */
+        val accuracyM: Int = -1,
     )
 
     fun saveShown(s: Shown) {
@@ -41,6 +46,10 @@ class Store(context: Context) {
             .putLong("fetchedAt", s.fetchedAt)
             .putString("source", s.source.name)
             .putString("all", all.toString())
+            .putLong("tookMs", s.tookMs)
+            .putLong("locMs", s.locMs)
+            .putInt("accuracyM", s.accuracyM)
+            .remove("error")
             .apply()
     }
 
@@ -59,7 +68,21 @@ class Store(context: Context) {
             source = runCatching { Source.valueOf(prefs.getString("source", "")!!) }
                 .getOrDefault(Source.DEFAULT),
             all = all,
+            tookMs = prefs.getLong("tookMs", -1),
+            locMs = prefs.getLong("locMs", -1),
+            accuracyM = prefs.getInt("accuracyM", -1),
         )
+    }
+
+    /** Why the last attempt failed (cleared by the next success). */
+    fun saveError(message: String) {
+        prefs.edit().putString("error", message).putLong("errorAt", System.currentTimeMillis()).apply()
+    }
+
+    /** (message, when) of the last failure since the last success, or null. */
+    fun loadError(): Pair<String, Long>? {
+        val m = prefs.getString("error", null) ?: return null
+        return m to prefs.getLong("errorAt", 0L)
     }
 
     fun saveLocation(lat: Double, lon: Double, at: Long) {

@@ -44,9 +44,30 @@ object WidgetViews {
         if (ids.isNotEmpty()) AppWidgetManager.getInstance(context).updateAppWidget(ids, views)
     }
 
+    /** Text sizes (sp) at 100%, matching widget_pm25.xml. */
+    private const val LABEL_SP = 9f
+    private const val REGION_SP = 12f
+    private const val VALUE_SP = 24f
+    private const val SMALL_TEXT_MAX_SCALE = 1.2f
+
+    /** The widget exactly as it is pushed, for the in-app preview. */
+    fun buildPreview(context: Context): RemoteViews = build(context, refreshing = false, failed = false)
+
     private fun build(context: Context, refreshing: Boolean, failed: Boolean): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_pm25)
-        val shown = Store(context).loadShown()
+        val store = Store(context)
+        val shown = store.loadShown()
+
+        // Text size setting (user, 10-13). The number takes the full scale;
+        // the two small lines grow at most [SMALL_TEXT_MAX_SCALE], or a 1x1
+        // tile runs out of height (measured: at 160 % across the board the
+        // number was cut off; at 200 % it vanished).
+        val k = store.textScalePercent / 100f
+        val kSmall = k.coerceAtMost(SMALL_TEXT_MAX_SCALE)
+        val sp = android.util.TypedValue.COMPLEX_UNIT_SP
+        views.setTextViewTextSize(R.id.widget_label, sp, LABEL_SP * kSmall)
+        views.setTextViewTextSize(R.id.widget_region, sp, REGION_SP * kSmall)
+        views.setTextViewTextSize(R.id.widget_value, sp, VALUE_SP * k)
 
         if (shown != null) {
             val band = Pm25.band(shown.value)

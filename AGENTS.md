@@ -48,6 +48,11 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
    location, precise location, then background location. Location takes
    two steps because Android 11+ refuses a background request until
    foreground access is granted.
+9. **Widget text size** (user, 10-13): slider in the app, 80-160 % in 10 %
+   steps (default 100 % = 9/12/24 sp for label/region/value; label and region
+   grow at most 120 %, or the number is cut off in a 1x1), applied with
+   `setTextViewTextSize` on every push. A live preview next to it is the
+   widget's own RemoteViews applied in the app, at the placed widget's size.
 
 ## Architecture
 
@@ -103,7 +108,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 4 / versionName 1.3 — bump versionCode for every
+  minSdk 26. versionCode 5 / versionName 1.4 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

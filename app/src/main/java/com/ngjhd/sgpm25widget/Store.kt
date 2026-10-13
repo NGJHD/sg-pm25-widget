@@ -15,6 +15,13 @@ import org.json.JSONObject
  */
 class Store(context: Context) {
 
+    companion object {
+        const val MIN_TEXT_SCALE = 80
+        const val MAX_TEXT_SCALE = 160
+        const val TEXT_SCALE_STEP = 10
+        const val DEFAULT_TEXT_SCALE = 100
+    }
+
     private val prefs = context.applicationContext.getSharedPreferences("pm25", Context.MODE_PRIVATE)
 
     /** Where the location used for the shown value came from. */
@@ -87,6 +94,15 @@ class Store(context: Context) {
 
     /** Wall-clock ms when the saved fix was taken, or 0. */
     fun locationTime(): Long = prefs.getLong("locAt", 0L)
+
+    /**
+     * Widget text size, percent of the layout's sizes (user, 10-13).
+     * Stored as a pref so every widget and the in-app preview agree.
+     */
+    var textScalePercent: Int
+        get() = prefs.getInt("textScale", DEFAULT_TEXT_SCALE)
+            .coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE)
+        set(v) = prefs.edit().putInt("textScale", v.coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE)).apply()
 
     fun saveLocation(lat: Double, lon: Double, at: Long) {
         prefs.edit()

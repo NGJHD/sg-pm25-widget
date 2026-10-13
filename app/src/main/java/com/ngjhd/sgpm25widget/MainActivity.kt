@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.SeekBar
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -134,6 +136,54 @@ class MainActivity : Activity() {
                 setOnClickListener { finish() }
             }
         }
+        setUpTextScale()
+    }
+
+    /** Slider 80-200 % in steps of 10; every change re-pushes the widgets. */
+    private fun setUpTextScale() {
+        val bar = findViewById<SeekBar>(R.id.text_scale)
+        val label = findViewById<TextView>(R.id.text_scale_value)
+        val store = Store(this)
+        val steps = (Store.MAX_TEXT_SCALE - Store.MIN_TEXT_SCALE) / Store.TEXT_SCALE_STEP
+        bar.max = steps
+        bar.progress = (store.textScalePercent - Store.MIN_TEXT_SCALE) / Store.TEXT_SCALE_STEP
+        label.text = "${store.textScalePercent}%"
+        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val pct = Store.MIN_TEXT_SCALE + progress * Store.TEXT_SCALE_STEP
+                label.text = "$pct%"
+                store.textScalePercent = pct // prefs listener re-renders the preview
+                WidgetViews.updateAll(this@MainActivity)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
+    }
+
+    /**
+     * The real widget's RemoteViews, applied inside the app, at the placed
+     * widget's size (portrait: min width x max height, in dp), else 76 dp.
+     */
+    private fun renderPreview() {
+        val frame = findViewById<FrameLayout>(R.id.widget_preview)
+        val (wDp, hDp) = WidgetViews.widgetIds(this).firstOrNull()?.let { id ->
+            val o = AppWidgetManager.getInstance(this).getAppWidgetOptions(id)
+            o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) to
+                o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+        }?.takeIf { it.first > 0 && it.second > 0 } ?: (76 to 76)
+        frame.layoutParams = frame.layoutParams.apply {
+            width = dp(wDp)
+            height = dp(hDp)
+        }
+        frame.removeAllViews()
+        try {
+            val preview = WidgetViews.buildPreview(this).apply(this, frame)
+            disableClicks(preview) // its refresh button would really refresh
+            frame.addView(preview)
+        } catch (e: Exception) {
+            android.util.Log.w("PM_WIDGET", "preview failed: $e")
+        }
     }
 
     override fun onResume() {
@@ -204,6 +254,7 @@ class MainActivity : Activity() {
     }
 
     private fun renderReading() {
+        renderPreview()
         val shown = Store(this).loadShown()
         val card = findViewById<LinearLayout>(R.id.current_card)
         val region = findViewById<TextView>(R.id.current_region)
@@ -337,6 +388,13 @@ class MainActivity : Activity() {
             .take(2)
             .joinToString(", ") { "${Pm25.displayName(it.first)} %.1f km".format(it.second) }
         return "Location %.4f, %.4f$acc$age\n$dist".format(lat, lon)
+    }
+
+    private fun disableClicks(v: View) {
+        v.setOnClickListener(null)
+        v.isClickable = false
+        v.isFocusable = false
+        if (v is android.view.ViewGroup) for (i in 0 until v.childCount) disableClicks(v.getChildAt(i))
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

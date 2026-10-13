@@ -3,12 +3,21 @@
   System-bar insets are added in code (SystemBars.pad) on main_root:
   android:fitsSystemWindows does not work under targetSdk 36 edge-to-edge, and
   it REPLACES a view's padding rather than adding to it. Do not re-add it.
+
+  The Done button sits OUTSIDE the ScrollView, pinned to the bottom, and only
+  shows during first-time setup (user, 10-13: it was missed below the fold).
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg">
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -100,10 +109,7 @@
                 android:visibility="gone" />
         </FrameLayout>
 
-        <!-- "All regions" (label + list) is hidden during first-time setup, so
-             the Done button shows without scrolling (user, 10-13). -->
         <TextView
-            android:id="@+id/regions_label"
             style="@style/AppLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -213,14 +219,19 @@
             android:layout_marginTop="24dp"
             android:text="Values are the 1-hour PM2.5 concentration in µg/m³. Bands (NEA): 0–55 Normal, 56–150 Elevated, 151–250 High, 251 and above Very high.\n\nThe widget updates every hour at 20 minutes past, while the screen is on, and catches up when the phone wakes. Add it from your home screen's widget picker. Data: data.gov.sg." />
 
-        <!-- Only when opened by placing a widget. -->
-        <Button
-            android:id="@+id/btn_done"
-            style="@style/AppButtonPrimary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="Done"
-            android:visibility="gone" />
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+
+    <!-- Only when opened by placing a widget; always on screen then. -->
+    <Button
+        android:id="@+id/btn_done"
+        style="@style/AppButtonPrimary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="12dp"
+        android:text="Done"
+        android:visibility="gone" />
+</LinearLayout>

@@ -79,8 +79,8 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 - `ScreenOnReceiver` (runtime-registered in `App`) — catch-up on wake with
   `ExistingWorkPolicy.KEEP`. `BootReceiver` — re-arms after boot/update.
 - `MainActivity` — app screen **and** the widget's configure activity. In
-  configure mode it shows a Done button and hides "All regions" so Done is
-  visible without scrolling (user, 10-13). Sets
+  configure mode it shows a Done button pinned below the scrolling content,
+  so it is always on screen (user, 10-13: it was missed below the fold). Sets
   `RESULT_OK` immediately (the widget is always kept) and starts the schedule,
   because the launcher sends no `onUpdate` for a placement with a configure
   activity. Opening it fetches (foreground ⇒ fresh fix with either grant).
@@ -111,7 +111,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 6 / versionName 1.5 — bump versionCode for every
+  minSdk 26. versionCode 7 / versionName 1.5 (a second 1.5 build: the user asked for this name; versionCode still went up so it installs over the first) — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

@@ -49,7 +49,7 @@ different endpoint).
 
 Placing the widget opens the app screen. For hourly updates to work:
 
-1. **Location → Precise, Allow all the time** (the app insists). With "While using
+1. **Location → Precise, Allow all the time** (the app insists on all three). With "While using
    the app" only, the hourly updates use the location from the last time the
    app was open.
 2. **Battery → Unrestricted** (the app insists). Otherwise Android parks the

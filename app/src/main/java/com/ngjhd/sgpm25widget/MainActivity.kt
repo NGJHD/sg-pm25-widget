@@ -280,6 +280,12 @@ class MainActivity : Activity() {
                 locationButton.text = "Allow location"
                 locationButton.setOnClickListener { PowerSetup.requestLocation(this) }
             }
+            !Locator.hasPrecise(this) -> {
+                locationStatus.text = "Approximate only. Android blurs it, which can show " +
+                    "the wrong region."
+                locationButton.text = "Use precise location"
+                locationButton.setOnClickListener { PowerSetup.requestLocation(this) }
+            }
             !hasBg -> {
                 locationStatus.text = "Allowed only while using the app. Hourly updates use the " +
                     "location from the last time you opened the app. Choose \"Allow all the time\" " +

@@ -54,6 +54,10 @@ object Locator {
         granted(context, Manifest.permission.ACCESS_COARSE_LOCATION) ||
             granted(context, Manifest.permission.ACCESS_FINE_LOCATION)
 
+    /** "Precise" location granted (not just approximate). */
+    fun hasPrecise(context: Context): Boolean =
+        granted(context, Manifest.permission.ACCESS_FINE_LOCATION)
+
     /** "Allow all the time". Implied by foreground access before Android 10. */
     fun hasBackground(context: Context): Boolean =
         hasForeground(context) && (

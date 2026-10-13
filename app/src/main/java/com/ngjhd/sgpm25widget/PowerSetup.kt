@@ -32,6 +32,10 @@ import android.widget.Toast
  *    the location from the last time the app was open. Asked in two steps,
  *    because Android 11+ refuses a background request until foreground
  *    access is granted: [Problem.LOCATION], then [Problem.BACKGROUND_LOCATION].
+ * 4. **Precise location** (user, 10-13). Approximate location is blurred by
+ *    Android; on the user's phone it put them ~400 m off, on the wrong side
+ *    of the North/Central line. Asked after foreground location and before
+ *    background location: [Problem.PRECISE_LOCATION].
  *
  * All are checked on every resume of the app screen and shown one at a time,
  * battery first (nothing runs at all without it). Deliberately unskippable:
@@ -41,7 +45,7 @@ object PowerSetup {
 
     private const val TAG = "PM_POWER"
 
-    enum class Problem { BATTERY, DATA_SAVER, LOCATION, BACKGROUND_LOCATION }
+    enum class Problem { BATTERY, DATA_SAVER, LOCATION, PRECISE_LOCATION, BACKGROUND_LOCATION }
 
     /** Request codes for [requestLocation]; results land in the activity. */
     const val REQ_LOCATION = 101
@@ -70,6 +74,7 @@ object PowerSetup {
         !isUnrestricted(context) -> Problem.BATTERY
         isDataSaverBlocking(context) -> Problem.DATA_SAVER
         !Locator.hasForeground(context) -> Problem.LOCATION
+        !Locator.hasPrecise(context) -> Problem.PRECISE_LOCATION
         !Locator.hasBackground(context) -> Problem.BACKGROUND_LOCATION
         else -> null
     }
@@ -131,6 +136,13 @@ object PowerSetup {
                     "You will be asked for \"Allow all the time\" next.",
                 "Allow location",
             )
+            Problem.PRECISE_LOCATION -> Triple(
+                "Turn on precise location",
+                "$appName only has your approximate location, which Android " +
+                    "deliberately blurs - enough to show the wrong region.\n\n" +
+                    "Tap Use precise, then choose Change to precise location.",
+                "Use precise",
+            )
             Problem.BACKGROUND_LOCATION -> Triple(
                 "Allow location all the time",
                 "The hourly update runs in the background, and Android only gives " +
@@ -164,7 +176,8 @@ object PowerSetup {
     fun openSettingFor(activity: Activity, problem: Problem) = when (problem) {
         Problem.BATTERY -> openSetting(activity)
         Problem.DATA_SAVER -> openDataSaverSetting(activity)
-        Problem.LOCATION, Problem.BACKGROUND_LOCATION -> requestLocation(activity)
+        Problem.LOCATION, Problem.PRECISE_LOCATION, Problem.BACKGROUND_LOCATION ->
+            requestLocation(activity)
     }
 
     /**
@@ -175,7 +188,9 @@ object PowerSetup {
      * App info instead ([onLocationResult]).
      */
     fun requestLocation(activity: Activity) {
-        if (!Locator.hasForeground(activity)) {
+        if (!Locator.hasForeground(activity) || !Locator.hasPrecise(activity)) {
+            // With approximate already granted, Android 12+ answers this same
+            // request with its "change to precise location" prompt.
             // Both, so the prompt offers Precise (see Locator: approximate is
             // ~3 km, enough to land on the wrong side of a region boundary).
             activity.requestPermissions(
@@ -209,7 +224,8 @@ object PowerSetup {
         val granted = results.isNotEmpty() && results.any { it == PackageManager.PERMISSION_GRANTED }
         if (granted) return true
         if (permissions.isNotEmpty() && !activity.shouldShowRequestPermissionRationale(permissions[0])) {
-            val choice = if (requestCode == REQ_BACKGROUND_LOCATION) "Allow all the time" else "Allow"
+            val choice = if (requestCode == REQ_BACKGROUND_LOCATION) "Allow all the time"
+            else "Allow, and turn on Use precise location"
             Toast.makeText(activity, "Open Permissions \u25B8 Location and choose $choice", Toast.LENGTH_LONG).show()
             startFirst(
                 activity,
@@ -238,6 +254,9 @@ object PowerSetup {
                     "Tap to allow it to use data while Data Saver is on."
             Problem.LOCATION ->
                 "⚠  Location is not allowed, so the widget shows Central. Tap to allow it."
+            Problem.PRECISE_LOCATION ->
+                "⚠  Only approximate location is allowed, so the region can be wrong. " +
+                    "Tap to turn on precise location."
             Problem.BACKGROUND_LOCATION ->
                 "⚠  Location is not allowed all the time, so hourly updates cannot follow " +
                     "you. Tap, then choose Allow all the time."

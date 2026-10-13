@@ -42,8 +42,10 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 7. **Setup gate** (carried over from Webglance): battery **Unrestricted**,
    the **Data Saver** exemption and **location "Allow all the time"** (user,
    10-13) are all mandatory; an unskippable dialog (only button opens the
-   setting, Back closes the screen) on every resume, plus a banner. Order:
-   battery, Data Saver, location, then background location. Location takes
+   setting, Back closes the screen) on every resume, plus a banner. **Precise
+   location** is nagged for too (user, 10-13: approximate put them ~400 m off,
+   on the wrong side of the North/Central line). Order: battery, Data Saver,
+   location, precise location, then background location. Location takes
    two steps because Android 11+ refuses a background request until
    foreground access is granted.
 
@@ -101,7 +103,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 3 / versionName 1.2 — bump versionCode for every
+  minSdk 26. versionCode 4 / versionName 1.3 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching

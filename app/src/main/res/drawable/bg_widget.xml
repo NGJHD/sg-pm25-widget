@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget background. White, so WidgetViews can colour it to the band with
+     setColorFilter (works on every API level, unlike a RemoteViews tint). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFFFF" />
+    <corners android:radius="16dp" />
+</shape>

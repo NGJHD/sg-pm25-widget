@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Palette. One accent, a neutral grey ramp, and one warning colour.
+  Deliberately light-only: every layout in this app hardcodes light values, so
+  a dark variant would need a full pass over them rather than a palette swap.
+-->
+<resources>
+    <color name="accent">#2F6FED</color>
+    <color name="accent_dark">#1B4FC0</color>
+    <color name="accent_pressed">#E8EFFD</color>
+
+    <color name="bg">#F4F6FA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="stroke">#E1E6EF</color>
+    <color name="stroke_strong">#C9D2E3</color>
+
+    <color name="text_primary">#141A24</color>
+    <color name="text_secondary">#5E6878</color>
+    <color name="text_muted">#8A94A6</color>
+    <color name="on_accent">#FFFFFF</color>
+
+    <color name="warning_bg">#FFF5E0</color>
+    <color name="warning_stroke">#F0C465</color>
+    <color name="warning_text">#7A5300</color>
+
+    <color name="icon_bg">#2E9E4F</color>
+</resources>

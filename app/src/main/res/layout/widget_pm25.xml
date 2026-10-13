@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CRITICAL: no bare <View> anywhere in this layout - the One UI widget host
+     then refuses to render it at all ("Couldn't add widget"). Use FrameLayout. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Band colour: WidgetViews sets a colour filter on this white shape. -->
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/bg_widget" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingTop="8dp">
+
+        <TextView
+            android:id="@+id/widget_region"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="PM2.5"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="…"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Refresh-in-progress: dim + spinner. FrameLayout, not View (see top). -->
+    <FrameLayout
+        android:id="@+id/widget_dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_widget_dim"
+        android:visibility="gone" />
+
+    <ProgressBar
+        android:id="@+id/widget_spinner"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <!-- Refresh icon (cancel X while fetching), top-right on a translucent
+         circle. Small: the widget is 1x1. -->
+    <ImageView
+        android:id="@+id/widget_refresh"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="3dp"
+        android:background="@drawable/bg_refresh_circle"
+        android:contentDescription="Refresh now"
+        android:padding="4dp"
+        android:src="@drawable/ic_refresh" />
+
+</FrameLayout>

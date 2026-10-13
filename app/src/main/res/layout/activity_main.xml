@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  System-bar insets are added in code (SystemBars.pad) on main_root:
+  android:fitsSystemWindows does not work under targetSdk 36 edge-to-edge, and
+  it REPLACES a view's padding rather than adding to it. Do not re-add it.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            style="@style/AppTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name" />
+
+        <!-- Setup gate banner (battery Unrestricted, Data Saver). -->
+        <TextView
+            android:id="@+id/setup_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_warning"
+            android:lineSpacingExtra="2dp"
+            android:padding="14dp"
+            android:textColor="@color/warning_text"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <!-- The value the widget shows, in its band colour. -->
+        <LinearLayout
+            android:id="@+id/current_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_value"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/current_region"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/current_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="56sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/current_band"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/current_meta"
+            style="@style/AppHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center" />
+
+        <Button
+            android:id="@+id/btn_refresh"
+            style="@style/AppButtonPrimary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Refresh now" />
+
+        <TextView
+            style="@style/AppLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="All regions (1-hour PM2.5, µg/m³)" />
+
+        <LinearLayout
+            android:id="@+id/regions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="6dp" />
+
+        <TextView
+            style="@style/AppLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Location" />
+
+        <TextView
+            android:id="@+id/location_status"
+            style="@style/AppHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btn_location"
+            style="@style/AppButtonSecondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:visibility="gone" />
+
+        <TextView
+            style="@style/AppHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Bands (NEA, 1-hour PM2.5): 0–55 Normal, 56–150 Elevated, 151–250 High, 251 and above Very high.\n\nThe widget updates every hour at 20 minutes past, while the screen is on, and catches up when the phone wakes. Add it from your home screen's widget picker. Data: data.gov.sg." />
+
+        <!-- Only when opened by placing a widget. -->
+        <Button
+            android:id="@+id/btn_done"
+            style="@style/AppButtonPrimary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Done"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1x1, resizable. NO updatePeriodMillis: onUpdate re-arms the schedule as a
+     self-heal, which is only safe while the system never calls it on a timer.
+     The configure activity is the app screen (location, battery, Data Saver
+     setup); "reconfigurable" lets a long-press reopen it. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/widget_pm25"
+    android:previewLayout="@layout/widget_pm25"
+    android:description="@string/widget_description"
+    android:configure="com.ngjhd.sgpm25widget.MainActivity"
+    android:widgetFeatures="reconfigurable" />

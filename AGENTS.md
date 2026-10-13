@@ -117,4 +117,6 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
   Webglance's**. Debug and release builds have different signatures; switching
   between them needs an uninstall, which removes placed widgets.
 - Release strips `Log.v/d/i/w` (the fetch logs coordinates).
+- Releasing: `RELEASE_GUIDE.md` (step by step, for the user). GitHub Releases
+  carry only the APK, named `sg-pm25-widget-v<versionName>.apk`, tag `v<versionName>`.
 - Log tags: `PM_FETCH`, `PM_SCHED`, `PM_WIDGET`, `PM_LOC`, `PM_POWER`.

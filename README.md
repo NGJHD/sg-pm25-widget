@@ -83,3 +83,6 @@ keyPassword=...
 Sideload with `adb install -r app-release.apk`. A debug build and a release
 build are signed with different keys, so one will not install over the other;
 switching means uninstalling first, which removes the placed widgets.
+
+To publish a new version (build, bump the version, upload the APK to GitHub
+Releases), follow [RELEASE_GUIDE.md](RELEASE_GUIDE.md).

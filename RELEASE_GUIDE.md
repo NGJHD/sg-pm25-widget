@@ -28,7 +28,9 @@ Two files, both deliberately **kept out of git**:
 - `C:\Users\ngjhd\keystores\sgpm25-release.jks`: the key itself
 - `C:\GitHub\PSI-Widget\keystore.properties`: its passwords
 
-**Back up both** (a USB stick or a password manager). Every update must be
+**Backed up** (2026-10-13) in
+`C:\Users\ngjhd\OneDrive\Files\Archive\Signing Keys\SG PM2.5 Widget (PSI-Widget)`.
+A `README.txt` there explains how to restore them. Keep that backup. Every update must be
 signed with this same key. Without it, a new version **will not install over
 the old one**: you would have to uninstall, which removes your widgets. It is
 also the key registered for Android developer verification

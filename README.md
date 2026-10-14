@@ -4,13 +4,8 @@ A 1x1 Android home-screen widget that shows Singapore's **1-hour PM2.5**
 reading (µg/m³) for the region nearest to you: North, South, East, West or
 Central. The background colour is the reading's NEA band.
 
-```
- ┌───────────⟳┐
- │ 1-hr PM2.5 │
- │   North    │
- │     73     │
- └────────────┘
-```
+<img width="549" height="1280" alt="sg pm25 widget" src="https://github.com/user-attachments/assets/e38818ba-41e2-4943-8fc0-170fbec3f958" />
+
 
 | Band | 1-hour PM2.5 (µg/m³) | Colour |
 |---|---|---|
@@ -58,7 +53,7 @@ Placing the widget opens the app screen. For hourly updates to work:
 3. If **Data Saver** is on, allow the app to use data while it is on (the app
    insists on this too).
 
-## Build
+## For Developers
 
 Needs JDK 17+ and the Android SDK (`local.properties` with `sdk.dir`).
 

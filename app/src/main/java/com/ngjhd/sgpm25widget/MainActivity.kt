@@ -296,28 +296,7 @@ class MainActivity : Activity() {
             meta.text = lines.joinToString("\n")
         }
 
-        val list = findViewById<LinearLayout>(R.id.regions)
-        list.removeAllViews()
-        val all = shown?.all.orEmpty()
-        for (name in listOf("north", "south", "east", "west", "central")) {
-            val v = all[name]
-            val row = TextView(this).apply {
-                textSize = 15f
-                setPadding(0, dp(10), 0, dp(10))
-                setTextColor(getColor(R.color.text_primary))
-                text = if (v == null) "${Pm25.displayName(name)}   –"
-                else "${Pm25.displayName(name)}   $v   ${Pm25.band(v).label}"
-                if (name == shown?.region) setTypeface(typeface, android.graphics.Typeface.BOLD)
-                val dot = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(if (v == null) getColor(R.color.stroke) else Pm25.band(v).color)
-                    setSize(dp(12), dp(12))
-                }
-                setCompoundDrawablesRelativeWithIntrinsicBounds(dot, null, null, null)
-                compoundDrawablePadding = dp(12)
-            }
-            list.addView(row)
-        }
+        findViewById<RegionMapView>(R.id.regions).set(shown?.all.orEmpty())
     }
 
     private fun renderLocation() {

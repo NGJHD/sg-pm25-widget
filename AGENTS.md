@@ -84,6 +84,9 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
   `RESULT_OK` immediately (the widget is always kept) and starts the schedule,
   because the launcher sends no `onUpdate` for a placement with a configure
   activity. Opening it fetches (foreground ⇒ fresh fix with either grant).
+- `RegionMapView` — "All regions" on the app screen: a solid Singapore
+  outline (geoBoundaries SGP ADM0, simplified, hardcoded) with one
+  band-coloured callout per region.
 - `PowerSetup` — the setup gate. `SystemBars.pad` — insets for every activity.
 
 ## Constraints (measured in Webglance, the app this was forked from)
@@ -111,7 +114,7 @@ describing the app **as it is now**. User-facing behaviour is in `README.md`.
 ## Build
 
 - Wrapper Gradle 8.14.3, AGP 8.9.3, Kotlin 2.0.20, compileSdk/targetSdk 36,
-  minSdk 26. versionCode 7 / versionName 1.5 (a second 1.5 build: the user asked for this name; versionCode still went up so it installs over the first) — bump versionCode for every
+  minSdk 26. versionCode 8 / versionName 1.6 — bump versionCode for every
   release you install over an older one.
 - Release signing: git-ignored `keystore.properties` → a key **separate from
   Webglance's**. Debug and release builds have different signatures; switching
